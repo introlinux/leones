@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medidor de Velocidad Lectora</title>
+    <style>
+        /* Estilos generales */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            text-align: center;
+            padding: 30px;
+            margin: -20px -20px 20px -20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        /* Controles de lectura y fuente */
+        .reading-selector-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            justify-content: center; /* Center items when wrapped */
+        }
+
+        .reading-selector {
+            flex: 1;
+            min-width: 250px; /* Ensure selectors have a minimum width */
+        }
+
+        .reading-selector select,
+        .load-file-button {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.1em;
+            background: white;
+            cursor: pointer;
+            color: #333;
+            text-align: center;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .load-file-button:hover {
+            background-color: #f8f9fa;
+        }
+
+        .custom-text {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.1em;
+            resize: vertical;
+            margin-bottom: 20px;
+        }
+
+        .font-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .font-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .font-btn:hover {
+            background: #5a6268;
+        }
+
+        .font-size-display {
+            background: #e9ecef;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .reading-text {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 25px;
+            font-size: 15px;
+            line-height: 1.8;
+            margin: 20px 0;
+            text-align: justify;
+            min-height: 200px;
+        }
+
+        .reading-text[contenteditable="true"] {
+            cursor: text;
+            min-height: 200px;
+        }
+
+        .reading-text[contenteditable="true"]:focus {
+            outline: 2px solid #4CAF50;
+            background: white;
+        }
+
+        /* Estilo para el placeholder en contenteditable divs */
+        .reading-text[contenteditable="true"]:empty:before {
+            content: attr(placeholder);
+            color: #999; /* Color gris */
+            font-style: italic; /* Cursiva */
+        }
+
+        .reading-text.clickable {
+            cursor: pointer;
+        }
+
+        .reading-text.clickable:hover {
+            background: #e9ecef;
+        }
+
+        .reading-text.finished {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+
+        .reading-text span {
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 3px;
+        }
+
+        .reading-text span:hover {
+            background: #ffeaa7;
+        }
+
+        /* Controles de acción */
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .action-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            margin: 10px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+
+        .action-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .action-btn.finish {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+
+        /* Temporizador */
+        .timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 2em;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Estilos para el modal */
+        .modal {
+            display: none; /* Oculto por defecto */
+            position: fixed; /* Posición fija para cubrir toda la pantalla */
+            z-index: 1; /* Estar encima de todo lo demás */
+            left: 0;
+            top: 0;
+            width: 100%; /* Ancho completo */
+            height: 100%; /* Alto completo */
+            overflow: auto; /* Habilitar scroll si es necesario */
+            background-color: rgba(0,0,0,0.4); /* Fondo semi-transparente */
+            justify-content: center; /* Centrar contenido horizontalmente */
+            align-items: center; /* Centrar contenido verticalmente */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto; /* Margen automático para centrar */
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 10px;
+            width: 80%; /* Ancho del modal */
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative; /* Para posicionar el botón de cerrar */
+        }
+
+        .modal-content h3 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .modal-content p {
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            color: #555;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .modal-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        .modal-button.cancel {
+            background-color: #f44336;
+        }
+
+        .modal-button:hover {
+            opacity: 0.8;
+        }
+        
+        /* Estilo para el display de WPM en el modal de resultados */
+        .wpm-display-modal {
+            font-size: 4em;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #4CAF50;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Medidor de Velocidad Lectora</h1>
+            <p>Herramienta para evaluar la velocidad de lectura de tus alumnos</p>
+        </div>
+
+        <div class="content">
+            <!-- Modo Combinado: Lecturas Predefinidas, Pegar Texto y Cargar Archivo -->
+            <div id="combinedMode" class="mode-content active">
+                <div class="reading-selector-group">
+                    <div class="reading-selector">
+                        <select id="readingSelect" onchange="loadPredefinedText()">
+                            <option value="">Selecciona una lectura predefinida...</option>
+                            <option value="1">Lectura 1 (Cuento)</option>
+                            <option value="2">Lectura 2 (Noticia)</option>
+                            <option value="3">Lectura 3 (Científico)</option>
+                            <option value="4">Lectura 4 (Receta)</option>
+                            <option value="5">Lectura 5 (Aviso)</option>
+                            <option value="6">Lectura 6 (Descripción)</option>
+                            <option value="7">Lectura 7 (Curiosidad)</option>
+                            <option value="8">Lectura 8 (Cuento)</option>
+                            <option value="9">Lectura 9 (Científico)</option>
+                            <option value="10">Lectura 10 (Descripción)</option>
+                            <option value="11">Lectura 11 (Noticia)</option>
+                            <option value="12">Lectura 12 (Curiosidad)</option>
+                        </select>
+                    </div>
+                    <div class="reading-selector">
+                        <button id="loadFileBtn" class="load-file-button" onclick="triggerFileLoad()">Cargar Archivo</button>
+                    </div>
+                </div>
+
+                <div class="font-controls">
+                    <button class="font-btn" onclick="changeFontSize(-1)">A-</button>
+                    <span class="font-size-display">Tamaño: <span id="fontSizeDisplay">15px</span></span>
+                    <button class="font-btn" onclick="changeFontSize(1)">A+</button>
+                </div>
+
+                <div id="readingText" class="reading-text" contenteditable="true" placeholder="Pega aquí el texto, selecciona una lectura predefinida o haz clic en 'Cargar Archivo'..." onpaste="handlePaste()" oninput="checkTextContent()">
+                </div>
+
+                <div class="controls">
+                    <button id="startStopBtn" class="action-btn" onclick="handleStartStop()">Comenzar</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="timer" class="timer" onclick="manualFinishTimedReading()">90</div>
+
+    <!-- Modal para alertas genéricas -->
+    <div id="customModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle"></h3>
+            <p id="modalMessage"></p>
+            <div class="modal-buttons">
+                <button class="modal-button" id="modalConfirmBtn">Aceptar</button>
+                <button class="modal-button cancel hidden" id="modalCancelBtn">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para Resultados -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <h3>¡Excelente trabajo! 🎉</h3>
+            <div id="wpmDisplayModal" class="wpm-display-modal">0</div>
+            <p>palabras por minuto</p>
+            <div class="modal-buttons">
+                <button class="modal-button" onclick="closeResultModalAndReset()">Nueva Prueba</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let startTime = 0;
+        let fontSize = 15;
+        let timerInterval;
+        let timeLeft = 90;
+        let isReading = false;
+        let fileInput = null;
+        let readingDuration = 0; 
+
+        // Textos predefinidos
+        let predefinedTexts = {
+            1: "Había una vez un león enorme que dormía la siesta bajo un árbol. Un pequeño ratón, jugando cerca, tropezó y despertó al gran felino. El león, furioso, atrapó al ratón con su zarpa y estaba a punto de comérselo. El ratoncito le suplicó que lo dejara ir, prometiéndole que algún día le devolvería el favor. Al león le hizo tanta gracia la idea que soltó una carcajada y dejó libre al pequeño roedor. Tiempo después, el león cayó en una red de cazadores. Rugió con todas sus fuerzas, pero no podía liberarse. El ratón escuchó sus lamentos y corrió a ayudarlo. Con sus pequeños pero afilados dientes, comenzó a roer las cuerdas de la red una por una hasta que el león finalmente pudo escapar. Desde ese día, el león y el ratón se convirtieron en los mejores amigos.",
+            2: "Una excelente noticia para los niños de nuestro barrio. El ayuntamiento ha inaugurado un nuevo parque de juegos en la plaza central, un espacio lleno de color y alegría para todos. Este nuevo lugar cuenta con columpios, toboganes de diferentes tamaños, un divertido balancín y hasta un pequeño rocódromo para los más atrevidos. Además, se han plantado árboles que darán sombra en los días de calor y se han instalado bancos para que los padres puedan descansar mientras los pequeños juegan sin parar. La construcción del parque se realizó pensando en la seguridad, con un suelo de goma especial para amortiguar las caídas. Todos los vecinos están muy contentos con esta iniciativa que fomenta el juego al aire libre y la convivencia. El parque está abierto todos los días para que las familias disfruten de momentos inolvidables juntos.",
+            3: "El agua de nuestro planeta está siempre en movimiento, como en un viaje circular infinito. A este viaje lo llamamos el ciclo del agua. Todo comienza con el sol, que calienta el agua de los ríos, lagos y mares. Este calor convierte el agua en un gas invisible llamado vapor, un proceso que se conoce como evaporación. El vapor sube hacia el cielo y, al enfriarse, se transforma en pequeñas gotitas que se juntan para formar las nubes. Esto se llama condensación. Cuando las nubes se llenan de muchas gotas, el agua vuelve a caer a la tierra en forma de lluvia, nieve o granizo. A esto lo llamamos precipitación. Una parte de esa agua llega a los ríos y vuelve al mar, y otra parte se filtra en la tierra. Así, el viaje del agua empieza de nuevo una y otra vez.",
+            4: "Hoy vamos a preparar una deliciosa y saludable macedonia de frutas, un postre perfecto para cualquier día. Es muy fácil y divertido de hacer. Primero, pide ayuda a un adulto para pelar y cortar la fruta. Necesitaremos varias piezas de tus frutas favoritas, como plátanos, fresas, manzanas, kiwis y naranjas. Lava muy bien todas las frutas antes de empezar. Después, córtalas en trozos pequeños y ponlas todas juntas en un bol grande. Remueve con cuidado para que los colores se mezclen. A continuación, exprime el zumo de una naranja y riégalo por encima de la fruta cortada. Esto le dará un toque jugoso y evitará que la fruta se ponga oscura. Si quieres, puedes añadir un poco de miel para endulzarla. Déjala enfriar en la nevera un ratito y ya estará lista para comer.",
+            5: "Atención, amantes de la lectura y las aventuras. La próxima semana celebraremos en el colegio el gran Día del Libro. Será una jornada muy especial llena de actividades fantásticas para todos los alumnos. Por la mañana, tendremos un mercadillo de libros usados en el patio, donde podrás intercambiar los cuentos que ya has leído por otros nuevos y emocionantes. También nos visitará un famoso autor de literatura infantil que nos contará los secretos para escribir historias increíbles y firmará ejemplares de sus obras. Por la tarde, organizaremos un concurso de disfraces en el que podrás vestirte como tu personaje literario favorito. Habrá premios para los disfraces más originales y creativos. No te olvides de preparar tu disfraz y traer tus libros para intercambiar. ¡Te esperamos para compartir un día mágico rodeados de historias y fantasía!",
+            6: "El elefante es el animal terrestre más grande del mundo. Su característica más llamativa es su larga trompa, que utiliza para respirar, oler, beber agua y agarrar objetos, como las ramas de los árboles que son su alimento. También tiene unas orejas enormes que le sirven para abanicarse y mantenerse fresco en los días de mucho calor. Sus colmillos, que en realidad son dientes muy largos, están hechos de marfil y los usa para defenderse y para buscar comida. A pesar de su gran tamaño, los elefantes son animales muy inteligentes y sociables. Viven en familias llamadas manadas, lideradas por la hembra de mayor edad, que es la más sabia. Se comunican entre ellos con sonidos especiales y cuidan mucho de sus crías. Les encanta bañarse en el agua y cubrir su piel de barro para protegerse del sol y de los insectos.",
+            7: "Los pulpos son criaturas marinas realmente asombrosas y llenas de sorpresas. ¿Sabías que tienen tres corazones? Dos de ellos bombean sangre a través de sus branquias, que son como sus pulmones para respirar bajo el agua, y el tercer corazón se encarga de repartir la sangre al resto del cuerpo. Además de tener tantos corazones, su sangre no es roja como la nuestra, sino de color azul. Esto se debe a que usan una proteína con cobre para transportar el oxígeno. Los pulpos también son maestros del camuflaje. Pueden cambiar el color y la textura de su piel en un instante para esconderse de los depredadores o para acechar a sus presas. Son increíblemente listos y pueden resolver problemas complejos, como abrir frascos para conseguir comida. Sin duda, son uno de los animales más fascinantes del océano.",
+            8: "Un día, una liebre muy veloz se burlaba constantemente de una tortuga por su lentitud. Cansada de las burlas, la tortuga desafió a la liebre a una carrera. La liebre, entre risas, aceptó el reto, segura de su victoria. Al comenzar la carrera, la liebre salió disparada y en poco tiempo dejó muy atrás a la pobre tortuga. Viendo que tenía una gran ventaja, decidió detenerse a descansar bajo un árbol. Pensó que tendría tiempo de sobra para echar una siesta y aun así ganar la carrera fácilmente. Mientras tanto, la tortuga seguía avanzando, lenta pero sin detenerse, paso a paso, con mucho esfuerzo y paciencia. Cuando la liebre finalmente despertó de su siesta, vio con asombro que la tortuga estaba a punto de cruzar la meta. Corrió con todas sus fuerzas, pero ya era demasiado tarde. La tortuga ganó la carrera.",
+            9: "Vivimos en un planeta llamado Tierra, que forma parte de una gran familia estelar conocida como el Sistema Solar. En el centro de esta familia se encuentra una estrella gigante y brillante: el Sol. El Sol es tan grande que todos los planetas giran a su alrededor. Hay ocho planetas en total, cada uno con sus propias características. Los más cercanos al Sol son Mercurio, Venus, la Tierra y Marte, que son pequeños y rocosos. Más lejos se encuentran los gigantes gaseosos: Júpiter y Saturno, que es famoso por sus impresionantes anillos. Y en los confines del sistema están Urano y Neptuno, dos planetas helados y de color azul. Todos ellos siguen un camino invisible llamado órbita mientras viajan sin cesar alrededor del Sol. Nuestro Sistema Solar es un lugar fascinante lleno de mundos por explorar.",
+            10: "Un bombero es un héroe de la comunidad que realiza un trabajo muy importante y valiente. Su principal misión es apagar incendios para proteger a las personas, los animales y las casas. Para ello, utiliza un traje especial que lo protege del fuego y del calor. También lleva un casco resistente y unas botas muy fuertes. Los bomberos no solo apagan fuegos, sino que también ayudan en muchas otras situaciones de emergencia. Por ejemplo, rescatan a personas atrapadas en accidentes de tráfico, ayudan durante las inundaciones y salvan a animales que están en peligro. Para moverse rápidamente por la ciudad, usan un gran camión rojo con una sirena y luces brillantes. Este camión está equipado con mangueras, escaleras muy altas y muchas otras herramientas. Ser bombero requiere ser fuerte, valiente y, sobre todo, tener un gran deseo de ayudar a los demás.",
+            11: "La semana pasada, nuestro colegio organizó un emocionante concurso de dibujo para celebrar la llegada de la primavera. Todos los alumnos, desde los más pequeños hasta los mayores, participaron con mucho entusiasmo. El tema del concurso era la naturaleza, y los pasillos se llenaron de obras de arte increíbles. Se podían ver paisajes llenos de flores de mil colores, árboles frondosos con pájaros cantando en sus ramas y ríos cristalinos con peces de colores. El jurado, formado por varios profesores de plástica, tuvo una tarea muy difícil para elegir a los ganadores, ya que todos los dibujos eran fantásticos. Finalmente, se entregaron premios a los dibujos más originales y mejor coloreados de cada clase. Todos los participantes recibieron un diploma por su esfuerzo y su creatividad. Fue una jornada maravillosa que llenó el colegio de color y alegría primaveral.",
+            12: "Las pirámides de Egipto son construcciones gigantescas y muy antiguas que guardan muchos secretos. Fueron construidas hace miles de años para que sirvieran como tumbas para los faraones, que eran los reyes del antiguo Egipto. Los egipcios creían que los faraones se convertían en dioses después de morir, y por eso construían estas enormes tumbas para proteger sus cuerpos y sus tesoros. La pirámide más grande y famosa es la Gran Pirámide de Guiza. Para construirla, se necesitaron millones de bloques de piedra, cada uno tan pesado como un coche. Los obreros tuvieron que trabajar durante muchos años para colocar todos esos bloques en su sitio sin la ayuda de las máquinas que tenemos hoy en día. Todavía hoy, los expertos se preguntan cómo consiguieron levantar esas piedras tan pesadas hasta lo más alto. Son un verdadero misterio.",
+        };
+
+        // Muestra un modal de alerta/confirmación personalizado
+        function showCustomModal(title, message, isConfirm = false) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('customModal');
+                const modalTitle = document.getElementById('modalTitle');
+                const modalMessage = document.getElementById('modalMessage');
+                const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+                const modalCancelBtn = document.getElementById('modalCancelBtn');
+
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+
+                if (isConfirm) {
+                    modalCancelBtn.classList.remove('hidden');
+                    modalConfirmBtn.textContent = 'Aceptar';
+                } else {
+                    modalCancelBtn.classList.add('hidden');
+                    modalConfirmBtn.textContent = 'Cerrar';
+                }
+
+                modal.style.display = 'flex';
+
+                modalConfirmBtn.onclick = () => {
+                    modal.style.display = 'none';
+                    resolve(true);
+                };
+
+                modalCancelBtn.onclick = () => {
+                    modal.style.display = 'none';
+                    resolve(false);
+                };
+            });
+        }
+
+        // Reinicia la aplicación a su estado inicial
+        function resetApp() {
+            document.getElementById('timer').style.display = 'none';
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            timeLeft = 90;
+            isReading = false;
+            readingDuration = 0;
+
+            const readingTextDiv = document.getElementById('readingText');
+            const startStopBtn = document.getElementById('startStopBtn');
+            const readingSelect = document.getElementById('readingSelect');
+
+            readingTextDiv.textContent = '';
+            readingTextDiv.contentEditable = 'true';
+            readingTextDiv.classList.remove('finished', 'clickable');
+            readingTextDiv.style.background = '#f8f9fa';
+            readingTextDiv.style.borderColor = '#dee2e6';
+            readingTextDiv.style.fontSize = fontSize + 'px';
+
+            startStopBtn.textContent = 'Comenzar';
+            startStopBtn.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+            startStopBtn.disabled = true;
+
+            readingSelect.value = '';
+        }
+
+        // Maneja el pegado de texto
+        function handlePaste() {
+            setTimeout(() => checkTextContent(), 10);
+        }
+
+        // Comprueba si hay texto para habilitar el botón de "Comenzar"
+        function checkTextContent() {
+            const textDiv = document.getElementById('readingText');
+            const startStopBtn = document.getElementById('startStopBtn');
+            const text = textDiv.textContent.trim();
+
+            startStopBtn.disabled = !text;
+        }
+
+        // Maneja el botón principal de Iniciar/Parar
+        function handleStartStop() {
+            if (isReading) {
+                manualFinishTimedReading();
+            } else {
+                startTimedReading();
+            }
+        }
+
+        // Activa la carga de un archivo
+        function triggerFileLoad() {
+            if (!fileInput) {
+                fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.txt';
+                fileInput.onchange = function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const readingTextDiv = document.getElementById('readingText');
+                            readingTextDiv.textContent = e.target.result;
+                            readingTextDiv.style.fontSize = fontSize + 'px';
+                            checkTextContent();
+                            document.getElementById('readingSelect').value = '';
+                            readingTextDiv.contentEditable = 'false';
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+            }
+            fileInput.click();
+        }
+
+        // Inicia la lectura cronometrada
+        function startTimedReading() {
+            const readingTextDiv = document.getElementById('readingText');
+            const startStopBtn = document.getElementById('startStopBtn');
+            const timer = document.getElementById('timer');
+
+            const text = readingTextDiv.textContent.trim();
+            if (!text) {
+                showCustomModal('Error', 'Por favor, introduce, carga un texto o selecciona una lectura predefinida antes de comenzar.');
+                return;
+            }
+
+            if (timerInterval) clearInterval(timerInterval);
+            timeLeft = 90;
+            isReading = true;
+            readingDuration = 0;
+
+            const words = text.split(/\s+/).filter(word => word.length > 0);
+            readingTextDiv.innerHTML = words.map((word, index) => `<span id="word-${index}" onclick="selectWord(${index})">${word}</span>`).join(' ');
+            readingTextDiv.contentEditable = 'false';
+
+            startTime = Date.now();
+
+            startStopBtn.textContent = 'Terminar';
+            startStopBtn.style.background = 'linear-gradient(45deg, #f44336, #d32f2f)';
+            startStopBtn.disabled = false;
+
+            timer.style.display = 'block';
+            timer.textContent = timeLeft;
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timer.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finishTimedReading();
+                }
+            }, 1000);
+        }
+
+        // Finaliza la lectura cuando se acaba el tiempo
+        async function finishTimedReading() {
+            if (!isReading) return;
+
+            playBeep();
+            readingDuration = 90;
+
+            const timer = document.getElementById('timer');
+            const readingTextDiv = document.getElementById('readingText');
+            const startStopBtn = document.getElementById('startStopBtn');
+
+            timer.style.display = 'none';
+            readingTextDiv.classList.add('finished', 'clickable');
+            readingTextDiv.style.background = '#fff3cd';
+            readingTextDiv.style.borderColor = '#ffeaa7';
+
+            isReading = false;
+            startStopBtn.textContent = 'Comenzar';
+            startStopBtn.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+            startStopBtn.disabled = true;
+
+            await showCustomModal('Tiempo Terminado', '¡El tiempo ha terminado! Por favor, haz clic en la ÚLTIMA PALABRA que leíste para calcular tus palabras por minuto.');
+        }
+
+        // Selecciona la última palabra leída para calcular el resultado
+        function selectWord(wordIndex) {
+            const readingTextDiv = document.getElementById('readingText');
+            if (!readingTextDiv.classList.contains('clickable')) {
+                showCustomModal('Error', 'Solo puedes seleccionar una palabra después de que el temporizador haya terminado.');
+                return;
+            }
+
+            readingTextDiv.classList.remove('clickable');
+            readingTextDiv.contentEditable = 'false';
+
+            const wordsRead = wordIndex + 1;
+            
+            if (readingDuration === 0) {
+                showCustomModal('Error', 'No se pudo calcular la duración de la lectura. Por favor, inténtalo de nuevo.');
+                resetApp();
+                return;
+            }
+            const wpm = Math.round((wordsRead / readingDuration) * 60);
+
+            // Muestra el resultado en el modal
+            document.getElementById('wpmDisplayModal').textContent = wpm;
+            document.getElementById('resultModal').style.display = 'flex';
+            document.getElementById('startStopBtn').disabled = true;
+        }
+
+        // Finaliza la lectura manualmente
+        async function manualFinishTimedReading() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            } else {
+                 showCustomModal('Error', 'La lectura cronometrada no ha comenzado o ya ha finalizado.');
+                 return;
+            }
+
+            const now = Date.now();
+            const secondsUsed = Math.round((now - startTime) / 1000);
+            readingDuration = secondsUsed;
+
+            if (secondsUsed < 2 && isReading) {
+                showCustomModal('Atención', 'Se requiere al menos 2 segundos de lectura para registrar un resultado. Puedes comenzar de nuevo.');
+                resetApp();
+                return;
+            }
+
+            const readingTextDiv = document.getElementById('readingText');
+            if (!readingTextDiv.innerHTML.includes('<span')) {
+                const words = readingTextDiv.textContent.split(/\s+/).filter(word => word.length > 0);
+                readingTextDiv.innerHTML = words.map((word, index) => `<span id="word-${index}" onclick="selectWord(${index})">${word}</span>`).join(' ');
+            }
+
+            readingTextDiv.classList.add('clickable', 'finished');
+            readingTextDiv.contentEditable = 'false';
+            readingTextDiv.style.background = '#fff3cd';
+            readingTextDiv.style.borderColor = '#ffeaa7';
+            
+            document.getElementById('timer').style.display = 'none';
+
+            isReading = false;
+            const startStopBtn = document.getElementById('startStopBtn');
+            startStopBtn.textContent = 'Comenzar';
+            startStopBtn.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+            startStopBtn.disabled = true;
+
+            await showCustomModal('Lectura Finalizada', '¡La lectura ha terminado! Por favor, haz clic en la ÚLTIMA PALABRA que leíste para calcular tus palabras por minuto.');
+        }
+
+        // Carga un texto predefinido del selector
+        function loadPredefinedText() {
+            const select = document.getElementById('readingSelect');
+            const readingTextDiv = document.getElementById('readingText');
+            const startStopBtn = document.getElementById('startStopBtn');
+            const selectedValue = select.value;
+
+            resetApp(); 
+
+            if (selectedValue) {
+                select.value = selectedValue;
+                readingTextDiv.textContent = predefinedTexts[selectedValue];
+                readingTextDiv.style.fontSize = fontSize + 'px';
+                startStopBtn.disabled = false;
+                readingTextDiv.contentEditable = 'false';
+            } else {
+                readingTextDiv.textContent = '';
+                startStopBtn.disabled = true;
+                readingTextDiv.contentEditable = 'true';
+            }
+        }
+
+        // Cambia el tamaño de la fuente
+        function changeFontSize(delta) {
+            fontSize += delta;
+            if (fontSize < 10) fontSize = 10;
+            if (fontSize > 30) fontSize = 30;
+
+            document.getElementById('fontSizeDisplay').textContent = fontSize + 'px';
+            document.getElementById('readingText').style.fontSize = fontSize + 'px';
+        }
+        
+        // Cierra el modal de resultados y reinicia la app
+        function closeResultModalAndReset() {
+            document.getElementById('resultModal').style.display = 'none';
+            resetApp();
+        }
+
+        // Reproduce un sonido de "beep"
+        function playBeep() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        // Inicialización al cargar el documento
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('fontSizeDisplay').textContent = fontSize + 'px';
+            resetApp();
+        });
+    </script>
+</body>
+</html>
